@@ -1,0 +1,36 @@
+library(shiny)
+library(ggplot2)
+
+ui <- fluidPage(
+  sliderInput(inputId="num", label="choose", min=0, max=100, value=20),
+  plotOutput(outputId = "hist"),
+  actionButton(inputId = "click", label="click me"),
+  actionButton(inputId = "go", label="Update")
+)
+
+server <- function(input, output){
+  rv <- reactiveValues(txt="")
+  observe({
+    if(input$num>50){
+      rv$txt <- ">50"
+    }else{
+      rv$txt <- "<50"
+    }
+  })
+  
+  data <- eventReactive(input$go, {
+    rnorm(input$num)
+  })
+  
+  output$hist <- renderPlot({
+    hist(data(), main=rv$txt)
+  })
+  
+  observeEvent(input$click, {
+    print(rv$txt)  
+  })
+}
+
+shinyApp(ui=ui, server=server)
+#> Error: Can't modify read-only reactive value 'count'
+

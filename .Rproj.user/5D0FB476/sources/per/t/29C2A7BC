@@ -1,0 +1,26 @@
+{
+    "id": "29C2A7BC",
+    "path": "C:/R_Shiny_prac/R_shiny/app.R",
+    "project_path": "app.R",
+    "type": "r_source",
+    "hash": "3458592667",
+    "contents": "",
+    "dirty": false,
+    "created": 1683102122380.0,
+    "source_on_save": false,
+    "relative_order": 1,
+    "properties": {
+        "source_window_id": "",
+        "Source": "Source",
+        "cursorPosition": "14,21",
+        "scrollLine": "0"
+    },
+    "folds": "",
+    "lastKnownWriteTime": 1683191724,
+    "encoding": "UTF-8",
+    "collab_server": "",
+    "source_window": "",
+    "last_content_update": 1683191724,
+    "read_only": false,
+    "read_only_alternatives": []
+}
