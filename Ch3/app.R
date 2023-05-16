@@ -34,27 +34,121 @@
 # observevent
 # 콘솔에 메세지 전송 , ex)로그기록 ...
 
-# 연습
-library(shiny)
-library(ggplot2)
+# # 연습
+# library(shiny)
+# library(ggplot2)
+# 
+# ui <- fluidPage(
+#   textInput("name", "What's your name?"),
+#   textOutput("greeting")
+# )
+# 
+# server <- function(input, output, session) {
+#   string <- reactive(paste0("Hello ", input$name, "!"))
+#   
+#   output$greeting <- renderText(string())
+#   observeEvent(input$name, {
+#     message("Greeting tno performetd")
+#   })
+# }
+# 
+# 
+# 
+# 
+# shinyApp(ui ,server)
 
-ui <- fluidPage(
-  textInput("name", "What's your name?"),
-  textOutput("greeting")
+
+
+
+
+# exercise_1 --------------------------------------------------------------
+# ui <- fluidPage(
+#   textInput("name", "What's your name?"),
+#   textOutput("greeting")
+# )
+# 
+# server <- function(input, output, session) {
+#   c <- reactive(input$a + input$b)
+#   e <- reactive(c() + input$d)
+#   output$f <- renderText(e())
+# }
+# 
+# 
+# 
+# shinyApp(ui ,server)
+
+# exercise_dev --------------------------------------------------------------
+
+
+library(shiny)
+
+# 초진여부 목록
+list_num = c("First" , "Second" , "Trird" , "Others")
+#
+ui<-fluidPage(
+  fluidRow(
+  textInput("name" , "what is your name" ,placeholder = "Hon gil dong"),
+  selectInput("sex" , "SEX" , choices = c("Male" , "Female" , "Both") , multiple = TRUE  ),
+  dateInput("birth" , "birth" , value = NULL , format = "yyyy-mm-dd"),
+  verbatimTextOutput("age" ),
+  radioButtons("First_or_again", "First / Extra" , choices = list_num ),
+  ),
+  
+  htmlOutput("summary"),
+  "---------------------------------------------------",
+  dataTableOutput("table"),
+  
+  actionButton("submit" , "Submit" , class = "btn-danger"),
+  textOutput("complete")
+  
+
 )
 
-server <- function(input, output, session) {
-  string <- reactive(paste0("Hello ", input$name, "!"))
-  
-  output$greeting <- renderText(string())
-  observeEvent(input$name, {
-    message("Greeting tno performetd")
-  })
+
+# function
+# birth에서 나이 구하는 함수
+calculateAge <- function(date) {
+  current_date <- format(Sys.Date() , "%Y")  # 현재 날짜
+  birth_date <- format(as.Date(date), "%Y")  # 입력된 날짜
+  age <- as.numeric(current_date) - as.numeric(birth_date)
+  return(age)
 }
 
 
+server<-function(input , output , session){
 
+  # 나이 추출
+  age<-reactive({
+    date <- format(input$birth ,"%Y-%m-%d" )
+    calculateAge(date)
+  })
 
-shinyApp(ui ,server)
+  # age output
+  output$age <- renderText({
+    age()
+  })
 
+  #summary output
+  output$summary <- reactive({
+    
+    result <- paste0("Hello ", input$name ,",", "<br>"
+                     , "Please check your profile berfore submit","<br>"
+                     ,"Your name : " ,input$name ,
+                     "<br>","Your sex : " ,input$sex,
+                     "<br>","Your age : " ,age() )
 
+    HTML(result)
+    
+    # selectinput에서 다중선택시에 값을 어떻게 받을지에 대한 고민이 있다.
+    # print(input$sex)
+  })
+
+  output$table <- renderDataTable(mtcars, options = list(pageLength = 5))
+  
+  # complete
+  output$complete <- eventReactive(input$submit , {
+    "complete"
+  })
+}
+
+shinyApp(ui = ui , server = server)

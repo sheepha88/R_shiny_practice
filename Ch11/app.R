@@ -4,7 +4,7 @@
 # Shinyapps 호출시 , enableBookmarking = "url"추가
 # url에 명시되지 않으며 자동으로 업데이트 되지도 않는다
 
-# library(shiny)
+library(shiny)
 # 
 # ui <- function(request) {
 #   fluidPage(
@@ -89,7 +89,7 @@ ui <- function(request) {
   fluidPage(
     sidebarLayout(
       sidebarPanel(
-        sliderInput("omega", "omega", value = 1, min = -2, max = 2, step = 0.01),
+        sliderInput("omega", "omga", value = 1, min = -2, max = 2, step = 0.01),
         sliderInput("delta", "delta", value = 1, min = 0, max = 2, step = 0.01),
         sliderInput("damping", "damping", value = 1, min = 0.9, max = 1, step = 0.001),
         numericInput("length", "length", value = 100),
