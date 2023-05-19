@@ -84,15 +84,22 @@ library(shiny)
 
 # 초진여부 목록
 list_num = c("First" , "Second" , "Trird" , "Others")
+
 #
 ui<-fluidPage(
-  fluidRow(
+  
   textInput("name" , "what is your name" ,placeholder = "Hon gil dong"),
-  selectInput("sex" , "SEX" , choices = c("Male" , "Female" , "Both") , multiple = TRUE  ),
+  
+  fluidRow(
+    selectInput("sex" , "SEX" , choices = c("Male" , "Female" , "Both") , multiple = TRUE  ),
+    actionButton("sex_submit" , "submit")
+    
+  ),
+  
   dateInput("birth" , "birth" , value = NULL , format = "yyyy-mm-dd"),
   verbatimTextOutput("age" ),
   radioButtons("First_or_again", "First / Extra" , choices = list_num ),
-  ),
+  
   
   htmlOutput("summary"),
   "---------------------------------------------------",
@@ -116,6 +123,11 @@ calculateAge <- function(date) {
 
 
 server<-function(input , output , session){
+  #성별 eventreactive
+  # 
+  sex <- eventReactive(input$sex_submit , {
+    input$sex
+  })
 
   # 나이 추출
   age<-reactive({
@@ -134,13 +146,15 @@ server<-function(input , output , session){
     result <- paste0("Hello ", input$name ,",", "<br>"
                      , "Please check your profile berfore submit","<br>"
                      ,"Your name : " ,input$name ,
-                     "<br>","Your sex : " ,input$sex,
-                     "<br>","Your age : " ,age() )
+                     "<br>","Your sex : " ,sex(),
+                     "<br>","Your age : " ,age()
+                     )
 
     HTML(result)
     
     # selectinput에서 다중선택시에 값을 어떻게 받을지에 대한 고민이 있다.
-    # print(input$sex)
+    # eventreactive로 제어한다면? A:그래도 안된다..
+    # cat(sex())
   })
 
   output$table <- renderDataTable(mtcars, options = list(pageLength = 5))

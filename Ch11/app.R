@@ -89,7 +89,7 @@ ui <- function(request) {
   fluidPage(
     sidebarLayout(
       sidebarPanel(
-        sliderInput("omega", "omga", value = 1, min = -2, max = 2, step = 0.01),
+        sliderInput("omega", "omega", value = 1, min = -2, max = 2, step = 0.01),
         sliderInput("delta", "delta", value = 1, min = 0, max = 2, step = 0.01),
         sliderInput("damping", "damping", value = 1, min = 0.9, max = 1, step = 0.001),
         numericInput("length", "length", value = 100),
