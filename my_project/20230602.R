@@ -12,7 +12,7 @@ addNewFile <- function(wrap_id, i){
     ),
     
     column(
-      width = 4,
+      width = 3,
       textInput(
         inputId = paste0("des_", i),
         label = "Description",
@@ -21,12 +21,13 @@ addNewFile <- function(wrap_id, i){
     ),
     
     column(
-      width = 4,
+      width = 3,
       class = "align-self-center",
       actionButton(inputId = paste0("upload_", i) ,
                    label = "UPLOAD",
                    class = "refresh-target",
-                   onclick = "getUploadTarget('uploadInput_ID',this.id)"
+                   onclick = "getUploadTarget('uploadInput_ID',this.id)",
+                   style = "margin-top: 25px"
       )
     ),
     
@@ -36,7 +37,20 @@ addNewFile <- function(wrap_id, i){
       actionButton(
         inputId = paste0("download_", i),
         label = "Download File",
-        onclick = "getUploadTarget('downloadInput_ID',this.id)"
+        onclick = "getUploadTarget('downloadInput_ID',this.id)",
+        style = "margin-top: 25px"
+        
+      ) |> shinyjs::hidden()
+    ),
+    
+    column(
+      width = 2,
+      class = "align-self-center",
+      actionButton(
+        inputId = paste0("delete_", i),
+        label = "Delete File",
+        onclick = "getUploadTarget('deleteInput_ID',this.id)",
+        style = "margin-top: 25px"
         
       ) |> shinyjs::hidden()
     )
@@ -98,10 +112,11 @@ ui <- fluidPage(
                             width = "100px")
              ),
              
+             #숨겨진 업로드 & 다운로드 버튼
              column(
                width = 2,
                
-               fileInput(inputId = "upload_file", label = NULL) |> 
+               fileInput( inputId = "upload_file", label = NULL) |> 
                  tagAppendAttributes(tag = _, class = "sr-only" ),
                
                downloadButton(outputId = "download_file", label = NULL, class = "sr-only")
@@ -159,8 +174,10 @@ server <- function(input, output, session) {
     
   })
   
-  #업로드 버튼
-  
+
+
+# upload ------------------------------------------------------------------
+
   uploadIdCache <- reactiveVal(0L)
   
   observeEvent(input$uploadInput_ID, {
@@ -177,34 +194,83 @@ server <- function(input, output, session) {
     download_auto<-str_replace(input$uploadInput_ID,"upload","download")
     shinyjs::show(download_auto)
     
+    delete_auto<-str_replace(input$uploadInput_ID,"upload","delete")
+    shinyjs::show(delete_auto)
+    
+    shinyjs::disable(input$uploadInput_ID)
+    
+    
+    observeEvent(input$upload_file, {
+      cat("cache id =", uploadIdCache(), fill = TRUE)
+      #upload file 조회
+      print(input$upload_file)
+      
+    })
+    
   })
+  
+  
+  # download ----------------------------------------------------------------
+ 
   
   observeEvent(input$downloadInput_ID, {
+    
+    
     req(input$downloadInput_ID)
-    print(input$downloadInput_ID)
+    shinyjs::click("download_file")
     
-    disable_input <- str_replace(input$downloadInput_ID,"download","upload")
-    shinyjs::disable(disable_input)
-
-  })
-  
-  
-  observeEvent(input$upload_file, {
     
-    cat("cache id =", uploadIdCache(), fill = TRUE)
-    print(input$upload_file)
-    
-  })
-  
+    })
   
   output$download_file <- downloadHandler(
     filename = function() {
       # filename needs be set reactively
+      filetype <- tools::file_ext(input$upload_file$datapath)
+      paste0(input$upload_file$name,".",filetype )
     },
     content = function(file) {
+      img_path <-input$upload_file$datapath
       # content needs to be set reactively
+      img_data <- readBin(con = img_path, what = "raw" , n = file.info(img_path)$size)
+      writeBin(img_data , file)
     }
   )
+
+  
+
+# delete ------------------------------------------------------------------
+  observeEvent(input$deleteInput_ID, {
+    req(input$deleteInput_ID)
+    shinyjs::click("delete_file")
+    
+    #delete기능
+    file.remove(input$upload_file$datapath)
+    
+    #delete 되었는지 reactive하게 확인
+    #delete 성공 -> empty , delete complete 출력
+    file_check <- strsplit(x = input$upload_file$datapath , split = "/",fixed = TRUE)[[1L]]
+    file_check_list <- paste0(file_check[1L] ,"/", file_check[2L])
+    list_check <-file.size(file_check_list)
+    
+    if (list_check==0){
+      print("empty, delete complete")
+    }
+    
+    
+    #다운로드 버튼  hide
+    print(input$downloadInput_ID)
+    download_hidden<-str_replace(input$deleteInput_ID,"delete","download")
+    shinyjs::hide(download_hidden)
+    
+    # delete버튼 hide
+    shinyjs::hide(input$deleteInput_ID)
+    
+    #upload버튼 활성화
+    upload_enable<-str_replace(input$deleteInput_ID,"delete","upload")
+    shinyjs::enable(upload_enable)
+    
+  })
+  
   
 }
 
