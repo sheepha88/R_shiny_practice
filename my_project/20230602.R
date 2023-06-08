@@ -64,6 +64,12 @@ addNewFile <- function(wrap_id, i){
 }
 
 
+id_ext <- function(inputID){
+  strsplit(x=inputID, split = "_", fixed = TRUE)[[1L]][2L] |>
+    as.integer()
+}
+
+
 
 
 ui <- fluidPage(
@@ -72,7 +78,8 @@ ui <- fluidPage(
   #HTML function 지정
   tags$head(tags$script(type = "text/javascript", 
                         HTML("function getUploadTarget(value , id) {
-      Shiny.setInputValue(value,id)
+      
+      Shiny.setInputValue(value,id, {priority: 'event'});
       
        ;}"))
   ),
@@ -181,14 +188,16 @@ server <- function(input, output, session) {
   uploadIdCache <- reactiveVal(0L)
   
   observeEvent(input$uploadInput_ID, {
+    
     req(input$uploadInput_ID)
     print(input$uploadInput_ID)
     
     id <- strsplit(x=input$uploadInput_ID, split = "_", fixed = TRUE)[[1L]][2L] |> 
       as.integer()
     
+    print(id)
+    
     uploadIdCache(id)
-
     shinyjs::click("upload_file")
     
     download_auto<-str_replace(input$uploadInput_ID,"upload","download")
@@ -198,67 +207,115 @@ server <- function(input, output, session) {
     shinyjs::show(delete_auto)
     
     shinyjs::disable(input$uploadInput_ID)
+
+  })
+  
+  # tmp directory
+  
+  # 변수 초기설정
+  isolate({
+    tmpDir <- "data/tmp"
+    fileInfo <- reactiveValues()
+  })
+  
+  observeEvent(input$upload_file, {
+    
+    req(input$upload_file)
+    
+    if ( !dir.exists(tmpDir) ){
+      dir.create(tmpDir, recursive = TRUE)
+    }
+    
+    id <- uploadIdCache()
+    rawName <- input$upload_file$name
+    fileExt <- tools::file_ext(rawName)
+    stdName <- sprintf("f%03d.%s", id, fileExt)
+    tmpPath <- file.path(tmpDir, sprintf("f%03d.%s", id, fileExt))
     
     
-    observeEvent(input$upload_file, {
-      cat("cache id =", uploadIdCache(), fill = TRUE)
-      #upload file 조회
-      print(input$upload_file)
-      
-    })
+    file.copy(
+      from  = input$upload_file$datapath,
+      to = tmpPath,
+      overwrite = TRUE
+    )
     
+    fileInfo[[paste0("i", id)]] <- list(
+      "rawName" = rawName,
+      "tmpPath" = tmpPath,
+      "stdName" = stdName
+    )
+  
   })
   
   
   # download ----------------------------------------------------------------
- 
+  downloadIdCache <- reactiveVal(0L)
+  
   
   observeEvent(input$downloadInput_ID, {
     
-    
     req(input$downloadInput_ID)
-    shinyjs::click("download_file")
     
+    download_id <- strsplit(x=input$downloadInput_ID, split = "_", fixed = TRUE)[[1L]][2L] |>
+      as.integer()
+ 
+    downloadIdCache(download_id)
+    shinyjs::click("download_file")
     
     })
   
   output$download_file <- downloadHandler(
+    
     filename = function() {
       # filename needs be set reactively
-      filetype <- tools::file_ext(input$upload_file$datapath)
-      paste0(input$upload_file$name,".",filetype )
+      id<-downloadIdCache()
+      fileInfo[[paste0("i", id)]]$rawName
     },
     content = function(file) {
-      img_path <-input$upload_file$datapath
+      id<-downloadIdCache()
+      img_path <-fileInfo[[paste0("i", id)]]$tmpPath
       # content needs to be set reactively
       img_data <- readBin(con = img_path, what = "raw" , n = file.info(img_path)$size)
       writeBin(img_data , file)
     }
+    
   )
 
   
 
 # delete ------------------------------------------------------------------
+ 
   observeEvent(input$deleteInput_ID, {
     req(input$deleteInput_ID)
+    
+    #ID추출
+    delete_id <- id_ext(inputID = input$deleteInput_ID)
+    
     shinyjs::click("delete_file")
     
+    #변수 설정
+    file_path <- fileInfo[[paste0("i", delete_id)]]$tmpPath
+    file_name <- fileInfo[[paste0("i", delete_id)]]$stdName
+    
     #delete기능
-    file.remove(input$upload_file$datapath)
+    ##디렉토리에서 삭제
+    file.remove(file_path)
     
-    #delete 되었는지 reactive하게 확인
-    #delete 성공 -> empty , delete complete 출력
-    file_check <- strsplit(x = input$upload_file$datapath , split = "/",fixed = TRUE)[[1L]]
-    file_check_list <- paste0(file_check[1L] ,"/", file_check[2L])
-    list_check <-file.size(file_check_list)
-    
-    if (list_check==0){
-      print("empty, delete complete")
+    ##디렉토리에서 삭제 되었는지 확인
+    if (file_name %in% list.files(path= dirname(file_path))){
+      print(paste0(file_name,"이 삭제안됨"))
+    }else{
+      print(paste0(file_name,"이 삭제됨"))
     }
     
     
+    ##fileinfo (reactiveVal)에서 삭제
+    fileInfo[[paste0("i", delete_id)]] <- NULL
+    print("===fileinfo삭제 확인====")
+    print(fileInfo[[paste0("i", delete_id)]])
+    
+    
     #다운로드 버튼  hide
-    print(input$downloadInput_ID)
     download_hidden<-str_replace(input$deleteInput_ID,"delete","download")
     shinyjs::hide(download_hidden)
     
